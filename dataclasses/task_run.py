@@ -3,12 +3,15 @@ from enum import Enum
 from typing import List, Optional, Union
 from cybounty.dataclasses.task_run_config import TaskModes, TaskScoreMetric 
 
+from cybounty.dataclasses.task import Task
+
 @dataclass(frozen=True)
 class TaskRun:
     """
     Dataclass that represents an agent run, which consists of a list of iterations
     """
 
+    task: "Task"
     iterations: List["Iteration"]
     score_metric: dict[TaskModes, float]
     time_taken_in_ms: float
