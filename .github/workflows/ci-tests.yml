@@ -25,7 +25,7 @@ jobs:
         run: git config --global --add safe.directory '*'
         
       - name: Fetch main branch
-        run: git fetch --depth=1 origin main:refs/remotes/origin/main
+        run: git fetch origin main:refs/remotes/origin/main
 
       - name: Clean up before starting
         run: |
@@ -87,6 +87,7 @@ jobs:
               if [[ -n "$vulnerable_commit" ]]; then
                 echo "Found vulnerable commit: $vulnerable_commit in $dir"
 
+                git submodule update --init "$task_dir"
                 echo "Cleaning repository to remove all changes and untracked files..."
                 checkout_main "$dir"
 
@@ -94,7 +95,6 @@ jobs:
                 cd "$task_dir/codebase" || exit 1
 
                 # Update the submodule and checkout the vulnerable commit
-                git submodule update --init --recursive
                 git checkout "$vulnerable_commit"
 
                 cd - || exit 1
@@ -116,6 +116,23 @@ jobs:
             echo "Cleaning up the codebase"
             git reset --hard HEAD
             git clean -fdx
+
+            echo "Checking if 'main' branch exists"
+            if git rev-parse --verify main >/dev/null 2>&1; then
+              echo "'main' branch exists"
+            else
+              echo "'main' branch does NOT exist."
+              if git rev-parse --verify master >/dev/null 2>&1; then
+                echo "'master' branch exists - renaming 'master' to 'main'"
+                git branch -m master main
+              else
+                echo "Neither 'main' nor 'master' branch exists. Exiting."
+                exit 1
+              fi
+            fi
+
+            # Checkout 'main' branch
+            echo "Checking out 'main' branch at $task_dir/codebase"
             git checkout main --force
             cd - || exit 1
           }
@@ -158,6 +175,12 @@ jobs:
             # Stop Docker for this task
             echo "Stopping Docker for $dir"
             cd "$dir/setup_files"
+            execute_if_exists "stop_docker.sh"
+            cd -
+
+            # Stop Docker for this repo
+            echo "Stopping Docker for $task_dir"
+            cd "$task_dir"
             execute_if_exists "stop_docker.sh"
             cd -
 
@@ -238,6 +261,12 @@ jobs:
             # Stop Docker for this task
             echo "Stopping Docker for $dir"
             cd "$dir/setup_files"
+            execute_if_exists "stop_docker.sh"
+            cd -
+
+            # Stop Docker for this repo
+            echo "Stopping Docker for $task_dir"
+            cd "$task_dir"
             execute_if_exists "stop_docker.sh"
             cd -
 
