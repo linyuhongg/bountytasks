@@ -82,13 +82,15 @@ jobs:
           checkout_vulnerable_commit() {
             local dir="$1"
             if [[ -f "$dir/bounty_metadata.json" ]]; then
-              task_dir=$(dirname "$(dirname "$dir")")
               vulnerable_commit=$(jq -r '.["vulnerable_commit"]' "$dir/bounty_metadata.json")
               
               if [[ -n "$vulnerable_commit" ]]; then
                 echo "Found vulnerable commit: $vulnerable_commit in $dir"
 
-                # Change to the specified task directory
+                echo "Cleaning repository to remove all changes and untracked files..."
+                checkout_main "$dir"
+
+                task_dir=$(dirname "$(dirname "$dir")")
                 cd "$task_dir/codebase" || exit 1
 
                 # Update the submodule and checkout the vulnerable commit
@@ -109,30 +111,14 @@ jobs:
           checkout_main() {
             local dir="$1"
             task_dir=$(dirname "$(dirname "$dir")")
+            echo "Checking out main branch at $task_dir/codebase"
             cd "$task_dir/codebase" || exit 1
             echo "Cleaning up the codebase"
-            git clean -fd
-
-            echo "Checking if 'main' branch exists"
-            if git rev-parse --verify main >/dev/null 2>&1; then
-              echo "'main' branch exists"
-            else
-              echo "'main' branch does NOT exist."
-              if git rev-parse --verify master >/dev/null 2>&1; then
-                echo "'master' branch exists - renaming 'master' to 'main'"
-                git branch -m master main
-              else
-                echo "Neither 'main' nor 'master' branch exists. Exiting."
-                exit 1
-              fi
-            fi
-
-            # Checkout 'main' branch
-            echo "Checking out 'main' branch at $task_dir/codebase"
+            git reset --hard HEAD
+            git clean -fdx
             git checkout main --force
             cd - || exit 1
           }
-
 
           EOF
           chmod +x /tmp/shared_functions.sh
