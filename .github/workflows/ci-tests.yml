@@ -76,7 +76,7 @@ jobs:
           }
 
           get_modified_dirs() {
-            git diff --diff-filter=ACM --name-only origin/main...HEAD | awk -F/ '{print $1}' | sort -u | xargs -I{} find {} -type d -regex ".*/bounty_[0-9]*$" | sort -u
+            git diff --diff-filter=ACMDR --name-only origin/main...HEAD | awk -F/ '{print $1"/"$2"/"$3}' | sort -u | xargs -I{} find {} -type d -regex ".*/bounties/bounty_[0-9]*$" 2>/dev/null | sort -u
           }
 
           checkout_vulnerable_commit() {
@@ -141,10 +141,15 @@ jobs:
           chmod +x /tmp/shared_functions.sh
           source /tmp/shared_functions.sh
           modified_dirs=$(get_modified_dirs)
-          echo "Modified directories: $modified_dirs"
-          echo "modified_dirs<<EOF" >> $GITHUB_OUTPUT
-          echo "$modified_dirs" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          if [ -z "$modified_dirs" ]; then
+            echo "No modified directories found. Exiting."
+            exit 1
+          else
+            echo "Modified directories: $modified_dirs"
+            echo "modified_dirs<<EOF" >> $GITHUB_OUTPUT
+            echo "$modified_dirs" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run Exploit Tests
         if: steps.modified-dirs.outputs.modified_dirs != ''
