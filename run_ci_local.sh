@@ -297,6 +297,14 @@ echo -e "${INFO} ${exploit_dir}\n"
 
 echo -e "${SUCCESS} Initial verification failed as expected. Running exploit.sh..."
 print_header "$CYAN" "RUNNING EXPLOIT SCRIPT"
+
+env_args=""
+if [ -n "$OPENAI_API_KEY" ]; then
+  env_args="-e OPENAI_API_KEY=$OPENAI_API_KEY"
+else
+  echo "OPENAI_API_KEY is not set, skipping env injection."
+fi
+
 exploit_log=$(docker run \
     --name "${container_name}" \
     --rm \
@@ -305,6 +313,7 @@ exploit_log=$(docker run \
     --privileged \
     --network "${network_name}" \
     --cgroupns host \
+    ${env_args} \
     -v "$(pwd)":/app \
     "${image_name}" \
     /bin/bash -c "cd '${exploit_dir}' && bash exploit.sh true")
